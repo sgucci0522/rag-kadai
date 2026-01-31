@@ -1,0 +1,21 @@
+[project]
+name = "rag-kadai"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "sakaguchi",email = "sgucci.0522@gmail.com"}
+]
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "langchain (==0.3.26)",
+    "langchain-core (==0.3.79)",
+    "langchain-openai (==0.3.17)",
+    "langgraph (==0.4.8)",
+    "langchain-community (==0.3.27)",
+    "chromadb (==1.0.9)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
