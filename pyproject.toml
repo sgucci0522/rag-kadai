@@ -7,12 +7,15 @@ authors = [
 ]
 requires-python = ">=3.11,<3.13"
 dependencies = [
-    "langchain (==0.3.26)",
-    "langchain-core (==0.3.79)",
+    "langchain (==0.3.27)",
+    "langchain-core (==0.3.83)",
     "langchain-openai (==0.3.17)",
     "langgraph (==0.4.8)",
     "langchain-community (==0.3.27)",
-    "chromadb (==1.0.9)"
+    "chromadb (==1.0.9)",
+    "langsmith (==0.3.45)",
+    "langchain-tavily (==0.2.7)",
+    "tavily-python (==0.7.9)"
 ]
 
 
