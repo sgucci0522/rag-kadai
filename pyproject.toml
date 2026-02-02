@@ -15,7 +15,8 @@ dependencies = [
     "chromadb (==1.0.9)",
     "langsmith (==0.3.45)",
     "langchain-tavily (==0.2.7)",
-    "tavily-python (==0.7.9)"
+    "tavily-python (==0.7.9)",
+    "docx2txt (>=0.9,<0.10)"
 ]
 
 
