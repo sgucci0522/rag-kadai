@@ -12,14 +12,19 @@ dependencies = [
     "langchain-openai (==0.3.17)",
     "langgraph (==0.4.8)",
     "langchain-community (==0.3.27)",
-    "chromadb (==1.0.9)",
+    "chromadb (==0.4.24)",
     "langsmith (==0.3.45)",
     "langchain-tavily (==0.2.7)",
     "tavily-python (==0.7.9)",
-    "docx2txt (>=0.9,<0.10)"
+    "docx2txt (>=0.9,<0.10)",
+    "numpy (<2.0)"
 ]
 
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+package-mode = false
+
