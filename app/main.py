@@ -2,7 +2,7 @@ import os
 api_key = os.getenv("OPENAI_API_KEY")
 
 # load_docs.py ファイルの読み込み
-from load_docs import load_contract
+from app.load_docs import load_contract
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
@@ -13,7 +13,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 
 
-documents = load_contract("../data/賃貸借契約書.txt")
+documents = load_contract("./data/賃貸借契約書.txt")
 print(documents[0].page_content[:500])
 
 # ドキュメントのチャンク化

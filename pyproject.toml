@@ -1,30 +1,58 @@
-[project]
+[tool.poetry]
 name = "rag-kadai"
 version = "0.1.0"
 description = ""
-authors = [
-    {name = "sakaguchi",email = "sgucci.0522@gmail.com"}
-]
-requires-python = ">=3.11,<3.13"
-dependencies = [
-    "langchain (==0.3.27)",
-    "langchain-core (==0.3.83)",
-    "langchain-openai (==0.3.17)",
-    "langgraph (==0.4.8)",
-    "langchain-community (==0.3.27)",
-    "chromadb (==0.4.24)",
-    "langsmith (==0.3.45)",
-    "langchain-tavily (==0.2.7)",
-    "tavily-python (==0.7.9)",
-    "docx2txt (>=0.9,<0.10)",
-    "numpy (<2.0)"
-]
+authors = ["sakaguchi <sgucci.0522@gmail.com>"]
+package-mode = false
 
+[tool.poetry.dependencies]
+python = ">=3.11,<3.13"
+langchain = "0.3.27"
+langchain-community = "0.3.27"
+langchain-openai = "0.3.17"
+langgraph = "0.4.8"
+chromadb = "0.4.24"
+langsmith = "0.3.45"
+langchain-tavily = "0.2.7"
+tavily-python = "0.7.9"
+docx2txt = ">=0.9,<0.10"
+numpy = "<2.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.poetry]
-package-mode = false
+
+
+
+
+#[project]
+#name = "rag-kadai"
+#version = "0.1.0"
+#description = ""
+#authors = [
+#    {name = "sakaguchi",email = "sgucci.0522@gmail.com"}
+#]
+#requires-python = ">=3.11,<3.13"
+#dependencies = [
+#    "langchain (==0.3.27)",
+#    "langchain-core (==0.3.83)",
+#    "langchain-openai (==0.3.17)",
+#    "langgraph (==0.4.8)",
+#    "langchain-community (==0.3.27)",
+#    "chromadb (==0.4.24)",
+#    "langsmith (==0.3.45)",
+#    "langchain-tavily (==0.2.7)",
+#    "tavily-python (==0.7.9)",
+#    "docx2txt (>=0.9,<0.10)",
+#    "numpy (<2.0)"
+#]
+
+
+#[build-system]
+#requires = ["poetry-core>=2.0.0,<3.0.0"]
+#build-backend = "poetry.core.masonry.api"
+
+#[tool.poetry]
+#package-mode = false
 
