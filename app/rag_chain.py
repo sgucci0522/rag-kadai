@@ -1,23 +1,39 @@
 from langchain_openai import ChatOpenAI
-from langchain.chains import RetrievalQA
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
+
+#from langchain.chains import RetrievalQA
 from .prompt import PROMPT
 
-def create_rag_chain(vectorstore):
+def create_rag_chain(vectorstore, api_key):
+
+# 言語モデル（LLM）の初期化
     llm = ChatOpenAI(
         model="gpt-4o-mini",
-        temperature=0
+        temperature=0,
+        api_key=api_key
     )
 
+# 検索機能（リトリーバー）の設定
     retriever = vectorstore.as_retriever(
+        search_type="similarity",
         search_kwargs={"k": 3}
     )
 
-    qa_chain = RetrievalQA.from_chain_type(
-        llm=llm,
-        retriever=retriever,
-        chain_type="stuff",
-        chain_type_kwargs={"prompt": PROMPT},
-        return_source_documents=False
+# プロンプトテンプレートの作成
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", "与えられた質問に対して、以下のコンテキストを使用して回答してください。コンテキスト:{context}"),
+        ("human", "{input}")
+    ])
+
+# 出力パーサーの設定
+    output_parser = StrOutputParser()
+
+# RAGパイプライン構築
+    chain = (
+        {"context": retriever, "input": RunnablePassthrough()}
+        | prompt | llm | output_parser
     )
 
-    return qa_chain
+    return chain
