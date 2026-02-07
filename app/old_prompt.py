@@ -1,7 +1,7 @@
 from langchain.prompts import PromptTemplate
 
 PROMPT = PromptTemplate(
-    input_variables=["context", "question"],
+    input_variables=["context", "input"],
     template="""
 あなたは賃貸借契約書の内容のみを根拠に回答するAIです。
 
@@ -16,7 +16,7 @@ PROMPT = PromptTemplate(
 {context}
 
 【質問】
-{question}
+{input}
 
 【回答】
 """

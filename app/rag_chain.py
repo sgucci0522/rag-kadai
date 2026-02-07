@@ -4,7 +4,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 
 #from langchain.chains import RetrievalQA
-from .prompt import PROMPT
+#from .old_prompt import PROMPT
 
 def create_rag_chain(vectorstore, api_key):
 
@@ -23,9 +23,21 @@ def create_rag_chain(vectorstore, api_key):
 
 # プロンプトテンプレートの作成
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "与えられた質問に対して、以下のコンテキストを使用して回答してください。コンテキスト:{context}"),
-        ("human", "{input}")
+        (
+            "system",
+            """あなたは賃貸借契約書の内容のみを根拠に回答するAIです。
+    - 契約書に記載がない場合は「その内容に関しては分かり兼ねます」と回答してください
+    - 推測や一般論は禁止です
+    """
+        ),
+        ("placeholder","{history}"),
+        ("human", "【契約書内容】\n{context}"),
+        ("human", "【質問】\n{input}")
     ])
+   # prompt = ChatPromptTemplate.from_messages([
+   #     ("system", "与えられた質問に対して、以下のコンテキストを使用して回答してください。コンテキスト:{context}"),
+   #     ("human", "{input}")
+   # ])
 
 # 出力パーサーの設定
     output_parser = StrOutputParser()
