@@ -1,4 +1,4 @@
-def user_question() -> str :
-    question = input("何か質問はありますか:")
+def user_question(query) -> str :
+    question = input(query)
 
     return question

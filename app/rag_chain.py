@@ -50,3 +50,5 @@ def create_rag_chain(vectorstore, api_key):
     )
 
     return chain
+
+    
