@@ -26,7 +26,8 @@ documents = load_contract("./data/賃貸借契約書.txt")
 vectorstore = create_vectorstore(documents, api_key)
 
 class AgentState(TypedDict, total=False):
-    user_request: str  # ユーザーからの元の質問
+    #user_request: str  # ユーザーからの元の質問
+    question: str  # ユーザーからの元の質問
     answer: str
     action: Literal["continue", "end"]
     end_message: str
@@ -37,11 +38,20 @@ class AgentState(TypedDict, total=False):
 # LLMの定義
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0,api_key=api_key)
 
+def input_node(state: AgentState):
+    state["question"] = user_question("ユーザーからの質疑：")
+    return {
+        "question": state["question"]
+    }
+
 def question_node(state: AgentState):
     """
     賃貸借契約書からユーザーからの問いに該当する内容を抽出する
     """
     print("--- ノード：回答抽出 ---")
+
+    #print("DEBUG question type:", type(state["user_request"]))
+    #print("DEBUG question value:", state["user_request"])
 
 # 検索機能（リトリーバー）の設定
     retriever = vectorstore.as_retriever(
@@ -59,6 +69,7 @@ def question_node(state: AgentState):
             """
         ),
         ("placeholder","{history}"),
+        ("human", "【契約書内容】\n{context}"),
         ("human", "{input}")
     ])
 
@@ -76,9 +87,15 @@ def question_node(state: AgentState):
         #| prompt | llm | output_parser
     #)
 
-    print(f"変数の中身：input {input}")
-
-    chain = prompt | llm | output_parser
+    chain = ({
+        "context": RunnableLambda(lambda x: x["input"]) | retriever,
+        "input": RunnableLambda(lambda x: x["input"]),
+        }
+       | prompt 
+       | llm 
+       | output_parser
+    )
+    #chain = prompt | llm | output_parser
 
     memory = ConversationBufferMemory(return_messages=True)
 
@@ -90,8 +107,10 @@ def question_node(state: AgentState):
     )
 
 # 結果を取得
+    request_text = state["question"]
     result = chain.invoke({
-       "input": state["user_request"]       
+       "context": request_text,      
+       "input": request_text      
        #"input":"家賃はいくら"
     })
 
@@ -152,12 +171,14 @@ def end_node(state: AgentState):
 
 workflow = Graph()
 
+workflow.add_node("input_node",input_node)
 workflow.add_node("question_node",question_node)
 workflow.add_node("confirm_QA_node",confirm_QA_node)
 workflow.add_node("should_continue_node",should_continue_node)
 workflow.add_node("end_node",end_node)
 
-workflow.set_entry_point("question_node")
+workflow.set_entry_point("input_node")
+workflow.add_edge("input_node", "question_node")
 workflow.add_edge("question_node", "confirm_QA_node")
 
 
@@ -165,7 +186,7 @@ workflow.add_conditional_edges(
     "confirm_QA_node",
     should_continue_node,
     {
-        "ASK": "question_node",
+        "ASK": "input_node",
         "END": "end_node"
     }
 )
@@ -181,11 +202,12 @@ except Exception:
 print("---  賃貸借契約書の内容について、何か質問はありますか　---")
 result = app.invoke(
     {
-       # "user_request": "2月15日に、大阪に予算5万円くらいで行きたい。"
-        #"user_request": user_question("ユーザーからの質疑：")
-        "user_request": "家賃はいくら？"
+        #"question": user_question("ユーザーからの質疑：")
+        #"user_request": "家賃はいくら？"
     }
 )
+
+print(result)
 
 end_message = result.get("end_message")
 
