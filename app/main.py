@@ -3,8 +3,8 @@ from app.load_docs import load_contract
 from app.vectorstore import create_vectorstore
 from app.rag_chain import create_rag_chain
 from app.user_question import user_question
-from app.followup import followup
-from app.node import question
+#from app.followup import followup
+#from app.node import question
 
 from langchain_openai import ChatOpenAI
 from langgraph.graph import Graph, END
