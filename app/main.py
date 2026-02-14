@@ -17,13 +17,15 @@ from langgraph.checkpoint.memory import MemorySaver
 from langchain.memory import ConversationBufferMemory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
+import sys
 import os
+import io
+
 api_key = os.getenv("OPENAI_API_KEY")
 
-import sys
-sys.stdin.reconfigure(encoding="utf-8")
-sys.stdout.reconfigure(encoding="utf-8")
-
+sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding="utf-8")
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+                              
 documents = load_contract("./data/賃貸借契約書.txt")
 
 # ドキュメントをチャンク化する　vectorstore.pyに引き渡す
