@@ -17,6 +17,10 @@ from langgraph.checkpoint.memory import MemorySaver
 from langchain.memory import ConversationBufferMemory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
+# streamlitを追加
+from dotenv import load_dotenv
+load_dotenv()
+
 import sys
 import os
 import io
