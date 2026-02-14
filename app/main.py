@@ -20,6 +20,10 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 import os
 api_key = os.getenv("OPENAI_API_KEY")
 
+import sys
+sys.stdin.reconfigure(encoding="utf-8")
+sys.stdout.reconfigure(encoding="utf-8")
+
 documents = load_contract("./data/賃貸借契約書.txt")
 
 # ドキュメントをチャンク化する　vectorstore.pyに引き渡す
