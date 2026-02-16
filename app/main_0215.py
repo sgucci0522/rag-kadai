@@ -1,18 +1,3 @@
-from dotenv import load_dotenv
-import os
-from pathlib import Path
-
-env_path = Path(__file__).resolve().parent.parent / ".env"
-load_dotenv(dotenv_path=env_path)
-
-api_key = os.getenv("OPENAI_API_KEY")
-
-import sys
-import io
-
-sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding="utf-8")
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
-
 # load_docs.py ファイルの読み込み
 from app.load_docs import load_contract
 from app.vectorstore import create_vectorstore
@@ -32,7 +17,19 @@ from langgraph.checkpoint.memory import MemorySaver
 from langchain.memory import ConversationBufferMemory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
-                             
+# streamlitを追加
+from dotenv import load_dotenv
+load_dotenv()
+
+import sys
+import os
+import io
+
+api_key = os.getenv("OPENAI_API_KEY")
+
+sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding="utf-8")
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+                              
 documents = load_contract("./data/賃貸借契約書.txt")
 
 # ドキュメントをチャンク化する　vectorstore.pyに引き渡す
@@ -52,7 +49,7 @@ class AgentState(TypedDict, total=False):
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0,api_key=api_key)
 
 def input_node(state: AgentState):
-    #state["question"] = user_question("ユーザーからの質疑：")
+    state["question"] = user_question("ユーザーからの質疑：")
     return {
         "question": state["question"]
     }
@@ -76,12 +73,12 @@ def question_node(state: AgentState):
         (
             "system",
             """あなたは賃貸借契約書の内容のみを根拠に回答するAIです。
-            - 契約書に記載がない場合は「その内容に関しては契約書に記載がありませんので、お答えすることは出来ません。」と回答してください
+            - 契約書に記載がない場合は「その内容に関しては分かり兼ねます」と回答してください
             - 推測や一般論は禁止です
             - 回答には根拠となる条文番号を含めてください
             """
         ),
- #       ("placeholder","{history}"),
+        ("placeholder","{history}"),
         ("human", "【契約書内容】\n{context}"),
         ("human", "{input}")
     ])
@@ -101,8 +98,8 @@ def question_node(state: AgentState):
     #)
 
     chain = ({
-        "context": RunnableLambda(lambda x: x["question"]) | retriever,
-        "input": RunnableLambda(lambda x: x["question"]),
+        "context": RunnableLambda(lambda x: x["input"]) | retriever,
+        "input": RunnableLambda(lambda x: x["input"]),
         }
        | prompt 
        | llm 
@@ -120,16 +117,17 @@ def question_node(state: AgentState):
     )
 
 # 結果を取得
-    #request_text = state["question"]
-    answer = chain.invoke({
-       "question": state["question"]      
+    request_text = state["question"]
+    result = chain.invoke({
+       "context": request_text,      
+       "input": request_text      
        #"input":"家賃はいくら"
     })
 
-#    print(f"-> ユーザーからの質問結果： {result}")
+    print(f"-> ユーザーからの質問結果： {result}")
 
     return {
-        "answer": answer
+        "answer": result
     }
 
 def confirm_QA_node(state: AgentState):
@@ -149,9 +147,7 @@ def confirm_QA_node(state: AgentState):
 
     chain = prompt | llm
 
-    
-# Streamlitでは絶対に使えません
-#    user_input = user_question("質問事項はまだありますか？（はい or いいえ）：")
+    user_input = user_question("質問事項はまだありますか？（はい or いいえ）：")
 
     result = chain.invoke({
         "input": user_input
@@ -187,57 +183,45 @@ workflow = Graph()
 
 workflow.add_node("input_node",input_node)
 workflow.add_node("question_node",question_node)
-#workflow.add_node("confirm_QA_node",confirm_QA_node)
-#workflow.add_node("should_continue_node",should_continue_node)
-#workflow.add_node("end_node",end_node)
+workflow.add_node("confirm_QA_node",confirm_QA_node)
+workflow.add_node("should_continue_node",should_continue_node)
+workflow.add_node("end_node",end_node)
 
 workflow.set_entry_point("input_node")
 workflow.add_edge("input_node", "question_node")
-workflow.add_edge("question_node", END)
-
-#workflow.add_edge("question_node", "confirm_QA_node")
+workflow.add_edge("question_node", "confirm_QA_node")
 
 
-#workflow.add_conditional_edges(
-#    "confirm_QA_node",
-#    should_continue_node,
-#    {
-#        "ASK": "input_node",
-#        "END": "end_node"
-#    }
-#)
-#workflow.add_edge("end_node",END)
+workflow.add_conditional_edges(
+    "confirm_QA_node",
+    should_continue_node,
+    {
+        "ASK": "input_node",
+        "END": "end_node"
+    }
+)
+workflow.add_edge("end_node",END)
 
 app = workflow.compile()
 
-#try:
-#  display(Image(app.get_graph().draw_mermaid_png()))
-#except Exception:
-#  print("Graph visualization requires drawio-headless package. Skipping.")
+try:
+  display(Image(app.get_graph().draw_mermaid_png()))
+except Exception:
+  print("Graph visualization requires drawio-headless package. Skipping.")
 
-def run_rag(question: str):
-    result = app.invoke({"question": question})
-    return result["answer"]
+print("---  賃貸借契約書の内容について、何か質問はありますか　---")
+result = app.invoke(
+    {
+        #"question": user_question("ユーザーからの質疑：")
+        #"user_request": "家賃はいくら？"
+    }
+)
 
-# -----------------------------------------------------
-# Streamlit にて　表示させる
+print(result)
 
-#print("---  賃貸借契約書の内容について、何か質問はありますか　---")
-#result = app.invoke(
-#    {
-#        #"question": user_question("ユーザーからの質疑：")
-#        #"user_request": "家賃はいくら？"
-#    }
-#)
+end_message = result.get("end_message")
 
-#print(result)
-
-#end_message = result.get("end_message")
-
-#print({end_message})
-
-# ----------------------------------------------------
-
+print({end_message})
 
 #workflow.set_entry_point("question")
 
