@@ -1,3 +1,18 @@
+from dotenv import load_dotenv
+import os
+from pathlib import Path
+
+env_path = Path(__file__).resolve().parent.parent / ".env"
+load_dotenv(dotenv_path=env_path)
+
+api_key = os.getenv("OPENAI_API_KEY")
+
+import sys
+import io
+
+sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding="utf-8")
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+
 # load_docs.py ファイルの読み込み
 from app.load_docs import load_contract
 from app.vectorstore import create_vectorstore
@@ -17,19 +32,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from langchain.memory import ConversationBufferMemory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
-# streamlitを追加
-from dotenv import load_dotenv
-load_dotenv()
-
-import sys
-import os
-import io
-
-api_key = os.getenv("OPENAI_API_KEY")
-
-sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding="utf-8")
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
-                              
+                             
 documents = load_contract("./data/賃貸借契約書.txt")
 
 # ドキュメントをチャンク化する　vectorstore.pyに引き渡す
