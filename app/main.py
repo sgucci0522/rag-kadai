@@ -16,10 +16,8 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 # load_docs.py ファイルの読み込み
 from app.load_docs import load_contract
 from app.vectorstore import create_vectorstore
-from app.rag_chain import create_rag_chain
-from app.user_question import user_question
-#from app.followup import followup
-#from app.node import question
+#from app.rag_chain import create_rag_chain
+#from app.user_question import user_question
 
 from langchain_openai import ChatOpenAI
 from langgraph.graph import Graph, END
@@ -63,8 +61,6 @@ def question_node(state: AgentState):
     """
     print("--- ノード：回答抽出 ---")
 
-    #print("DEBUG question type:", type(state["user_request"]))
-    #print("DEBUG question value:", state["user_request"])
 
 # 検索機能（リトリーバー）の設定
     retriever = vectorstore.as_retriever(
@@ -90,16 +86,6 @@ def question_node(state: AgentState):
 # 出力パーサーの設定
     output_parser = StrOutputParser()
 
-# RAGパイプライン構築
-    #chain = (
-        #{"context": retriever, "input": RunnablePassthrough()}
-        #{
-        #"input": RunnableLambda(lambda x: x["input"]) | retriever,
-        #"history": RunnableLambda(lambda x: x["history"]),
-        #}
-        #| prompt | llm | output_parser
-    #)
-
     chain = ({
         "context": RunnableLambda(lambda x: x["question"]) | retriever,
         "input": RunnableLambda(lambda x: x["question"]),
@@ -108,7 +94,6 @@ def question_node(state: AgentState):
        | llm 
        | output_parser
     )
-    #chain = prompt | llm | output_parser
 
     memory = ConversationBufferMemory(return_messages=True)
 
@@ -120,13 +105,10 @@ def question_node(state: AgentState):
     )
 
 # 結果を取得
-    #request_text = state["question"]
     answer = chain.invoke({
        "question": state["question"]      
-       #"input":"家賃はいくら"
-    })
 
-#    print(f"-> ユーザーからの質問結果： {result}")
+    })
 
     return {
         "answer": answer
@@ -148,10 +130,6 @@ def confirm_QA_node(state: AgentState):
     ])
 
     chain = prompt | llm
-
-    
-# Streamlitでは絶対に使えません
-#    user_input = user_question("質問事項はまだありますか？（はい or いいえ）：")
 
     result = chain.invoke({
         "input": user_input
@@ -195,19 +173,6 @@ workflow.set_entry_point("input_node")
 workflow.add_edge("input_node", "question_node")
 workflow.add_edge("question_node", END)
 
-#workflow.add_edge("question_node", "confirm_QA_node")
-
-
-#workflow.add_conditional_edges(
-#    "confirm_QA_node",
-#    should_continue_node,
-#    {
-#        "ASK": "input_node",
-#        "END": "end_node"
-#    }
-#)
-#workflow.add_edge("end_node",END)
-
 app = workflow.compile()
 
 #try:
@@ -218,79 +183,3 @@ app = workflow.compile()
 def run_rag(question: str):
     result = app.invoke({"question": question})
     return result["answer"]
-
-# -----------------------------------------------------
-# Streamlit にて　表示させる
-
-#print("---  賃貸借契約書の内容について、何か質問はありますか　---")
-#result = app.invoke(
-#    {
-#        #"question": user_question("ユーザーからの質疑：")
-#        #"user_request": "家賃はいくら？"
-#    }
-#)
-
-#print(result)
-
-#end_message = result.get("end_message")
-
-#print({end_message})
-
-# ----------------------------------------------------
-
-
-#workflow.set_entry_point("question")
-
-# グラフをコンパイル
-#app = workflow.compile()
-
-#input ={"input":"何か質問はありますか？:"}
-#result = app.invoke({
-#    "input": input,
-#    "api_key": api_key
-#})
-
-#print(result["response"])
-
-# グラフ構造を可視化
-#try:
-#    display(Image(app.get_graph().draw_mermaid_png()))
-#except Exception:
-#    print("Graph visualization requires drawio-headless package. Skipping.")
-
-# ======================================================================
-# ２回まで回答 2026.2.9
-
-# LLMに回答を求める　　　　rag_chain.pyに引き渡す
-##chain = create_rag_chain(vectorstore, api_key)
-
-# 質問内容をユーザーが入力
-##user_questions = user_question("何か質問はありますか？:")
-
-# 結果を取得
-##result = chain.invoke(user_questions)
-
-# 結果の表示
-##print("【回答】")
-##print(result)
-
-# 類似質問の生成
-##followup_chain = followup(api_key)
-
-##followup_result = followup_chain.invoke({
-##    "answer": result
-##})
-
-##print("\n【関連する質問】")
-##print(followup_result)
-
-# 質問内容をユーザーが入力
-##user_questions = user_question("ほかに質問はありますか？:")
-
-# 結果を取得
-##result = chain.invoke(user_questions)
-
-# 結果の表示
-##print("【回答】")
-##print(result)
-# ======================================================================
