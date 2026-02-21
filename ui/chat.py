@@ -7,6 +7,8 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 import streamlit as st
 from app.main import app  # あなたのRAGチェーン
 from app.main import run_rag
+from app.main import classify_intent
+from app.main import generate_landlord_mail
 
 st.title("📄 RAG Chat System")
 
@@ -33,11 +35,21 @@ if prompt := st.chat_input("質問を入力してください"):
         st.markdown(prompt)
 
     # RAG実行
-    result = app.invoke({"question": prompt})
+    #result = app.invoke({"question": prompt})
 
+    intent = classify_intent({"question": prompt})
+    intent = intent["classify"]
+
+    print(f"intent: {intent}")
+
+    if intent == "2":
+        print("mail")
+        result = generate_landlord_mail({"question": prompt})
 # RAGの戻り値から回答部分だけ取り出す
-#   answer = result["answer"]
-    answer = run_rag(prompt)
+        answer = result["answer"]
+    else:
+        print("rag")
+        answer = run_rag(prompt)
 
 # ＡＩの返答を履歴に保存、吹き出しを表示
     st.session_state.messages.append({"role": "assistant", "content": answer})

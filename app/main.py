@@ -40,6 +40,7 @@ class AgentState(TypedDict, total=False):
     #user_request: str  # ユーザーからの元の質問
     question: str  # ユーザーからの元の質問
     answer: str
+    classift: str
     action: Literal["continue", "end"]
     end_message: str
 
@@ -129,16 +130,22 @@ def confirm_QA_node(state: AgentState):
         ("human", "{input}")
     ])
 
-    chain = prompt | llm
+    #chain = prompt | llm
+    
+    chain = ({
+        "input": RunnableLambda(lambda x: x["question"]),
+        }
+       | prompt 
+       | llm 
+       | output_parser
+    )
 
-    result = chain.invoke({
-        "input": user_input
+    answer = chain.invoke({
+        "question": state["question"]
     })
 
-    print(result.content)
-
     return {
-        "action": result.content
+        "answer": answer
     }
 
 def should_continue_node(state: AgentState):
@@ -157,6 +164,105 @@ def end_node(state: AgentState):
             "end_message": "質疑応答を終わります。お疲れ様でした。"
         }
 
+def generate_landlord_mail(state: AgentState):
+    """
+    貸主に対するメール本文を返す
+    """
+# 検索機能（リトリーバー）の設定
+    retriever = vectorstore.as_retriever(
+        search_type="similarity",
+        search_kwargs={"k": 3}
+    )
+
+    prompt = ChatPromptTemplate.from_messages([
+        ("system",
+         "あなたは不動産管理の専門家です。"
+         "次の賃貸契約書を参照し、"
+         "貸主（甲）の氏名を特定したうえで、"
+         "貸主宛の丁寧なメール本文を作成してください。"
+         "【条件】"
+         " ・メール本文に貸主名を必ず含める"
+         " ・丁寧語"
+         " ・ビジネス文"
+         " ・件名は不要"
+         " ・署名は不要"
+         " ・貸主名が不明な場合は「貸主様」とする"
+         ),
+        ("human", "【契約書内容】\n{context}"),
+        ("human", "{input}")
+    ])
+
+    #chain = prompt | llm
+
+# 出力パーサーの設定
+    output_parser = StrOutputParser()
+
+    chain = ({
+        "context": RunnableLambda(lambda x: x["question"]) | retriever,
+        "input": RunnableLambda(lambda x: x["question"]),
+        }
+       | prompt 
+       | llm 
+       | output_parser
+    )
+
+# 結果を取得
+    answer = chain.invoke({
+       "question": state["question"]
+
+    })
+    
+    return {
+        "answer": answer
+    }
+
+
+def classify_intent(state: AgentState):
+
+    llm = ChatOpenAI(
+        model="gpt-4o-mini",
+        api_key=api_key,
+        temperature=0
+    )
+
+    prompt = ChatPromptTemplate.from_template("""
+あなたは意図分類AIです。
+次の文章がどれに該当するか番号だけで答えてください。
+
+1 = 通常の質問
+2 = 貸主へのメール作成依頼
+
+文章:
+{input}
+""")
+
+# 出力パーサーの設定
+    output_parser = StrOutputParser()
+    #chain = prompt | llm
+    
+    chain = ({
+        "input": RunnableLambda(lambda x: x["question"]),
+        }
+       | prompt 
+       | llm 
+       | output_parser
+    )
+
+    result = chain.invoke({
+        #"input": user_input})
+        "question": state["question"]
+        })
+   
+    print(f"classify: {result}")
+
+    return {
+        "classify": result
+    }
+    #return result.strip()
+
+def run_rag(question: str):
+    result = app.invoke({"question": question})
+    return result["answer"]
 
 # ======================================================================
 # Grapf
@@ -180,6 +286,3 @@ app = workflow.compile()
 #except Exception:
 #  print("Graph visualization requires drawio-headless package. Skipping.")
 
-def run_rag(question: str):
-    result = app.invoke({"question": question})
-    return result["answer"]
