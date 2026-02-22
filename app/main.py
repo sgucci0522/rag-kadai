@@ -9,6 +9,7 @@ api_key = os.getenv("OPENAI_API_KEY")
 
 import sys
 import io
+import sqlite3
 
 sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding="utf-8")
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
@@ -30,8 +31,41 @@ from langgraph.checkpoint.memory import MemorySaver
 from langchain.memory import ConversationBufferMemory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
-                             
-documents = load_contract("./data/賃貸借契約書.txt")
+from langchain.schema import Document
+
+documents = []
+
+documents.append(
+    Document(
+        page_content="##### 賃貸借契約書 #####",
+        metadata={"type": "contract"}
+    )
+)
+
+documents.extend(load_contract("./data/賃貸借契約書.txt"))
+
+#データベースをテキストで取り込む
+conn = sqlite3.connect("./data/app.db")
+cur = conn.cursor()
+
+rows = cur.execute("SELECT target_date, amount, status FROM rent_payments").fetchall()
+
+docs = []
+for target_date, amount, status in rows:
+    text = f"年月:{target_date} 家賃支払い:{amount} 支払い状態:{status}"
+    docs.append(Document(page_content=text))
+
+documents.append(
+    Document(
+        page_content="##### 支払い情報 #####",
+        metadata={"type": "payment",
+                  "date": str(target_date),
+                  "status": status
+                  }
+        )
+)
+
+documents.extend(docs)
 
 # ドキュメントをチャンク化する　vectorstore.pyに引き渡す
 vectorstore = create_vectorstore(documents, api_key)
