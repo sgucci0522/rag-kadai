@@ -22,11 +22,6 @@ CREATE TABLE IF NOT EXISTS rent_payments (
 );
 """)
 
-if __name__ == "__main__":
-    create_data()
-
-conn.commit()
-conn.close()
 
 
 
@@ -56,8 +51,25 @@ def create_data():
             month = 1
             year += 1
 
-    conn.commit()
-    conn.close()
+    #conn.commit()
+    #conn.close()
 
     print("登録完了")
 
+def show_all_data():
+#    with get_connection() as conn:
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT * FROM rent_payments")
+        rows = cursor.fetchall()
+
+        for row in rows:
+            print(row)
+
+
+if __name__ == "__main__":
+    #create_data()
+    show_all_data()
+
+conn.commit()
+conn.close()
