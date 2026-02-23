@@ -9,6 +9,7 @@ from app.main import app  # あなたのRAGチェーン
 from app.main import run_rag
 from app.main import classify_intent
 from app.main import generate_landlord_mail
+from app.main import database_search
 
 st.title("📄 RAG Chat System")
 
@@ -42,14 +43,15 @@ if prompt := st.chat_input("質問を入力してください"):
 
     print(f"intent: {intent}")
 
-    if intent == "2":
-        print("mail")
+    if intent == "1":
+        answer = run_rag(prompt)
+    elif intent == "2":
         result = generate_landlord_mail({"question": prompt})
 # RAGの戻り値から回答部分だけ取り出す
         answer = result["answer"]
     else:
-        print("rag")
-        answer = run_rag(prompt)
+        result = database_search({"question": prompt})
+        answer = result["answer"]
 
 # ＡＩの返答を履歴に保存、吹き出しを表示
     st.session_state.messages.append({"role": "assistant", "content": answer})
