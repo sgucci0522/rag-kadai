@@ -33,42 +33,42 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 
 from langchain.schema import Document
 
-documents = []
+#documents = []
 
-documents.append(
-    Document(
-        page_content="##### 賃貸借契約書 #####",
-        metadata={"type": "contract"}
-    )
-)
+#documents.append(
+#    Document(
+#        page_content="##### 賃貸借契約書 #####",
+#        metadata={"type": "contract"}
+#    )
+#)
 
-documents.extend(load_contract("./data/賃貸借契約書.txt"))
+#documents.extend(load_contract("./data/賃貸借契約書.txt"))
 
 #データベースをテキストで取り込む
-conn = sqlite3.connect("./data/app.db")
-cur = conn.cursor()
+#conn = sqlite3.connect("./data/app.db")
+#cur = conn.cursor()
 
-rows = cur.execute("SELECT target_date, amount, status FROM rent_payments").fetchall()
+#rows = cur.execute("SELECT target_date, amount, status FROM rent_payments").fetchall()
 
-docs = []
-for target_date, amount, status in rows:
-    text = f"年月:{target_date} 家賃支払い:{amount} 支払い状態:{status}"
-    docs.append(Document(page_content=text))
+#docs = []
+#for target_date, amount, status in rows:
+#    text = f"年月:{target_date} 家賃支払い:{amount} 支払い状態:{status}"
+#    docs.append(Document(page_content=text))
+#
+#documents.append(
+#    Document(
+#        page_content="##### 支払い情報 #####",
+#        metadata={"type": "payment",
+#                  "date": str(target_date),
+#                  "status": status
+#                  }
+#        )
+#)
 
-documents.append(
-    Document(
-        page_content="##### 支払い情報 #####",
-        metadata={"type": "payment",
-                  "date": str(target_date),
-                  "status": status
-                  }
-        )
-)
-
-documents.extend(docs)
+#documents.extend(docs)
 
 # ドキュメントをチャンク化する　vectorstore.pyに引き渡す
-vectorstore = create_vectorstore(documents, api_key)
+#vectorstore = create_vectorstore(documents, api_key)
 
 class AgentState(TypedDict, total=False):
     #user_request: str  # ユーザーからの元の質問
@@ -96,6 +96,11 @@ def question_node(state: AgentState):
     """
     print("--- ノード：回答抽出 ---")
 
+
+    documents = load_contract("./data/賃貸借契約書.txt")
+
+# ドキュメントをチャンク化する　vectorstore.pyに引き渡す
+    vectorstore = create_vectorstore(documents, api_key)
 
 # 検索機能（リトリーバー）の設定
     retriever = vectorstore.as_retriever(
@@ -202,6 +207,11 @@ def generate_landlord_mail(state: AgentState):
     """
     貸主に対するメール本文を返す
     """
+    documents = load_contract("./data/賃貸借契約書.txt")
+
+# ドキュメントをチャンク化する　vectorstore.pyに引き渡す
+    vectorstore = create_vectorstore(documents, api_key)
+
 # 検索機能（リトリーバー）の設定
     retriever = vectorstore.as_retriever(
         search_type="similarity",
@@ -250,6 +260,70 @@ def generate_landlord_mail(state: AgentState):
         "answer": answer
     }
 
+def database_search(state: AgentState):
+    """
+    データベースから情報を抽出する
+    """
+
+    documents = []
+    conn = sqlite3.connect("./data/app.db")
+    cur = conn.cursor()
+
+    rows = cur.execute("SELECT target_date, amount, status FROM rent_payments").fetchall()
+
+    docs = []
+    for target_date, amount, status in rows:
+        text = f"年月:{target_date} 家賃支払い:{amount} 支払い状態:{status}"
+        docs.append(Document(page_content=text))
+
+    documents.extend(docs)
+
+
+# ドキュメントをチャンク化する　vectorstore.pyに引き渡す
+    vectorstore = create_vectorstore(documents, api_key)
+
+# 検索機能（リトリーバー）の設定
+    retriever = vectorstore.as_retriever(
+        search_type="similarity",
+        search_kwargs={"k": 3}
+    )
+
+    prompt = ChatPromptTemplate.from_messages([
+        ("system",
+"""
+あなたはデータベースの中身から返答を返すＡＩです。
+質問内容から、答えてください。
+
+"""
+),
+        ("human", "【データ】\n{context}"),
+        ("human", "{input}")
+    ])
+
+    #chain = prompt | llm
+
+# 出力パーサーの設定
+    output_parser = StrOutputParser()
+
+    chain = ({
+        "context": RunnableLambda(lambda x: x["question"]) | retriever,
+        "input": RunnableLambda(lambda x: x["question"]),
+        }
+       | prompt
+       | llm
+       | output_parser
+    )
+
+# 結果を取得
+    answer = chain.invoke({
+       "question": state["question"]
+
+    })
+
+    return {
+        "answer": answer
+    }
+
 
 def classify_intent(state: AgentState):
 
@@ -265,6 +339,7 @@ def classify_intent(state: AgentState):
 
 1 = 通常の質問
 2 = 貸主へのメール作成依頼
+3 = 支払い状況に関する内容
 
 文章:
 {input}
