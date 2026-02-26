@@ -17,8 +17,6 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 # load_docs.py ファイルの読み込み
 from app.load_docs import load_contract
 from app.vectorstore import create_vectorstore
-#from app.rag_chain import create_rag_chain
-#from app.user_question import user_question
 
 from langchain_openai import ChatOpenAI
 from langgraph.graph import Graph, END
@@ -33,43 +31,6 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 
 from langchain.schema import Document
 
-#documents = []
-
-#documents.append(
-#    Document(
-#        page_content="##### 賃貸借契約書 #####",
-#        metadata={"type": "contract"}
-#    )
-#)
-
-#documents.extend(load_contract("./data/賃貸借契約書.txt"))
-
-#データベースをテキストで取り込む
-#conn = sqlite3.connect("./data/app.db")
-#cur = conn.cursor()
-
-#rows = cur.execute("SELECT target_date, amount, status FROM rent_payments").fetchall()
-
-#docs = []
-#for target_date, amount, status in rows:
-#    text = f"年月:{target_date} 家賃支払い:{amount} 支払い状態:{status}"
-#    docs.append(Document(page_content=text))
-#
-#documents.append(
-#    Document(
-#        page_content="##### 支払い情報 #####",
-#        metadata={"type": "payment",
-#                  "date": str(target_date),
-#                  "status": status
-#                  }
-#        )
-#)
-
-#documents.extend(docs)
-
-# ドキュメントをチャンク化する　vectorstore.pyに引き渡す
-#vectorstore = create_vectorstore(documents, api_key)
-
 class AgentState(TypedDict, total=False):
     #user_request: str  # ユーザーからの元の質問
     question: str  # ユーザーからの元の質問
@@ -83,12 +44,6 @@ class AgentState(TypedDict, total=False):
 
 # LLMの定義
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0,api_key=api_key)
-
-def input_node(state: AgentState):
-    #state["question"] = user_question("ユーザーからの質疑：")
-    return {
-        "question": state["question"]
-    }
 
 def question_node(state: AgentState):
     """
@@ -117,7 +72,6 @@ def question_node(state: AgentState):
             - 回答には根拠となる条文番号を含めてください
             """
         ),
- #       ("placeholder","{history}"),
         ("human", "【契約書内容】\n{context}"),
         ("human", "{input}")
     ])
@@ -154,55 +108,6 @@ def question_node(state: AgentState):
         "answer": answer
     }
 
-def confirm_QA_node(state: AgentState):
-    """
-    質疑応答を終えるかどうかを確認する
-    """
-    print("--- ノード：質疑応答の終了確認 ---")
-
-    prompt = ChatPromptTemplate.from_messages([
-        ("system",
-        "あなたは対話の進行管理AIです。"
-        "これ以上の質疑応答が必要かを判断してください。\n"
-        "必要なら continue、十分なら end を返してください。"),
-#        ("placeholder","{history}"),
-        ("human", "{input}")
-    ])
-
-    #chain = prompt | llm
-    
-    chain = ({
-        "input": RunnableLambda(lambda x: x["question"]),
-        }
-       | prompt 
-       | llm 
-       | output_parser
-    )
-
-    answer = chain.invoke({
-        "question": state["question"]
-    })
-
-    return {
-        "answer": answer
-    }
-
-def should_continue_node(state: AgentState):
-    if state["action"] == "end":
-        return "END"
-    return "ASK"
-
-def end_node(state: AgentState):
-    """
-    質疑応答を終了する旨を返す
-    """
-    print("--- ノード：質疑応答　終了")
-
-    if state["action"] == "end":
-        return {
-            "end_message": "質疑応答を終わります。お疲れ様でした。"
-        }
-
 def generate_landlord_mail(state: AgentState):
     """
     貸主に対するメール本文を返す
@@ -235,8 +140,6 @@ def generate_landlord_mail(state: AgentState):
         ("human", "【契約書内容】\n{context}"),
         ("human", "{input}")
     ])
-
-    #chain = prompt | llm
 
 # 出力パーサーの設定
     output_parser = StrOutputParser()
@@ -299,8 +202,6 @@ def database_search(state: AgentState):
         ("human", "【データ】\n{context}"),
         ("human", "{input}")
     ])
-
-    #chain = prompt | llm
 
 # 出力パーサーの設定
     output_parser = StrOutputParser()
@@ -378,20 +279,9 @@ def run_rag(question: str):
 
 workflow = Graph()
 
-workflow.add_node("input_node",input_node)
 workflow.add_node("question_node",question_node)
-#workflow.add_node("confirm_QA_node",confirm_QA_node)
-#workflow.add_node("should_continue_node",should_continue_node)
-#workflow.add_node("end_node",end_node)
 
-workflow.set_entry_point("input_node")
-workflow.add_edge("input_node", "question_node")
+workflow.set_entry_point("question_node")
 workflow.add_edge("question_node", END)
 
 app = workflow.compile()
-
-#try:
-#  display(Image(app.get_graph().draw_mermaid_png()))
-#except Exception:
-#  print("Graph visualization requires drawio-headless package. Skipping.")
-
