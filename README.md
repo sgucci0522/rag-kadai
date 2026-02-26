@@ -35,6 +35,13 @@ rag-kadai/
 bash
 curl -sSL https://install.python-poetry.org | python3 -
 
+PATHの設定
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+
+poetry --version
+バージョンが表示されたら、インストール完了
+
 ### 2. 依存インストール
 poetry install
 
