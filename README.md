@@ -15,10 +15,15 @@ RAG（Retrieval-Augmented Generation）を用いた契約書QAシステムです
 ## 🧱 構成
 rag-kadai/
 ├── app/ # 生成モデル周り実装
+
 ├── data/ # データセット / ドキュメントなど
+
 ├── ui/ # Streamlit実装
+
 ├── poetry.lock # 依存パッケージのバージョンを固定
+
 ├── pyproject.toml # Pythonプロジェクトの設定ファイル
+
 └── README.md # このファイル
 
 ## 🚀 セットアップ
